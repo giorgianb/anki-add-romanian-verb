@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+from collections import OrderedDict
 import urllib
 
 class Verb(object):
@@ -91,6 +92,24 @@ class Verb(object):
     @property
     def forms(self):
         return self.__forms.keys()
+
+    @classmethod
+    def get_forms(cls):
+        return cls.__forms.keys()
+
+    @classmethod
+    def is_personal_form(cls, form):
+        if form not in cls.get_forms():
+            raise InvalidFormError("{} is not a valid form.".format(form))
+
+        return None not in cls.__forms[form]
+
+    @classmethod
+    def is_impersonal_form(cls, form):
+        if form not in cls.get_forms():
+            raise InvalidFormError("{} is not a valid form.".format(form))
+
+        return None in cls.__forms[form]
 
     @property
     def candidates(self):
