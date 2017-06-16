@@ -1,37 +1,45 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import Qt
+from time import sleep
 from Verb import Verb
 
 class VerbWindow(QWidget):
-    def __init__(self):
+    __model_name = u"Romanian Verb Conjugation"
+    def __init__(self, main_window, collection):
         super(VerbWindow, self).__init__()
 
+        self.__locked = False
+        self.__collection = collection
+        self.__main_window = main_window
+        self.__init_gui()
+
+    def __init_gui(self):
         # Verb Search
         verb_box = QHBoxLayout()
         verb_label = QLabel("Verb: ")
-        self.verb_text = QLineEdit("",self)
+        self.__verb_text = QLineEdit("",self)
 
         verb_box.addWidget(verb_label)
-        verb_box.addWidget(self.verb_text)
+        verb_box.addWidget(self.__verb_text)
         search_button = QPushButton("Search", self)
         search_button.clicked.connect(self.__on_search)
         verb_box.addWidget(search_button)
 
         # Deck selection
-        self.deck = QComboBox(self)
-        for deck_name in ("Sample Deck 1", "Sample Deck 2"):
-            self.deck.addItem(deck_name)
-        self.deck.setCurrentIndex(0)
+        self.__deck_select = QComboBox(self)
+        for deck_name in self.__collection.decks.allNames():
+            self.__deck_select.addItem(deck_name, self.__collection.decks.id(deck_name))
+        self.__deck_select.setCurrentIndex(0)
 
         # Form selection
         personal_forms_box = QVBoxLayout()
         impersonal_forms_box = QVBoxLayout()
 
-        self.checkboxes = {}
+        self.__forms = {}
         for form in Verb.get_forms():
             checkbox = QCheckBox(form, self)
             checkbox.setChecked(True)
-            self.checkboxes[form] = checkbox
+            self.__forms[form] = checkbox
             if Verb.is_personal_form(form):
                 personal_forms_box.addWidget(checkbox)
             else:
@@ -42,25 +50,25 @@ class VerbWindow(QWidget):
         forms_box.addLayout(personal_forms_box)
 
         # Table of search results
-        self.results_table = QTableWidget(4, 3, self)
-        self.results_table.setHorizontalHeaderLabels(["Group", "Conjugation"])
-        self.results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.results_table.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.results_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.results_table.horizontalHeader().setSortIndicatorShown(False)
-        self.results_table.horizontalHeader().setClickable(False)
-        self.results_table.horizontalHeader().setResizeMode(QHeaderView.Interactive)
-        self.results_table.horizontalHeader().setStretchLastSection(True)
-        self.results_table.horizontalHeader().setMinimumSectionSize(100)
-        self.results_table.verticalHeader().setResizeMode(QHeaderView.Fixed)
-        self.results_table.setMinimumHeight(275)
-        self.results_table.setVisible(False)
+        self.__results_table = QTableWidget(4, 3, self)
+        self.__results_table.setHorizontalHeaderLabels(["Group", "Conjugation"])
+        self.__results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.__results_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.__results_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.__results_table.horizontalHeader().setSortIndicatorShown(False)
+        self.__results_table.horizontalHeader().setClickable(False)
+        self.__results_table.horizontalHeader().setResizeMode(QHeaderView.Interactive)
+        self.__results_table.horizontalHeader().setStretchLastSection(True)
+        self.__results_table.horizontalHeader().setMinimumSectionSize(100)
+        self.__results_table.verticalHeader().setResizeMode(QHeaderView.Fixed)
+        self.__results_table.setMinimumHeight(275)
+        self.__results_table.setVisible(False)
 
         top_box = QVBoxLayout()
         top_box.addLayout(verb_box)
-        top_box.addWidget(self.deck)
+        top_box.addWidget(self.__deck_select)
         top_box.addLayout(forms_box)
-        top_box.addWidget(self.results_table)
+        top_box.addWidget(self.__results_table)
 
         self.setLayout(top_box)
         self.setMinimumWidth(200)
@@ -69,12 +77,12 @@ class VerbWindow(QWidget):
         self.show()
 
     def __on_search(self):
-        verb = Verb(unicode(self.verb_text.text()))
-        self.results_table.setRowCount(0)
+        verb = Verb(unicode(self.__verb_text.text()))
+        self.__results_table.setRowCount(0)
         for row, conjugation in enumerate(verb.conjugations):
-            self.results_table.insertRow(row)
-            self.results_table.setItem(row, 0, QTableWidgetItem(u"Group {}".format(verb.group)))
-            self.results_table.setItem(row, 1, QTableWidgetItem(u"Conjugation {}".format(conjugation)))
+            self.__results_table.insertRow(row)
+            self.__results_table.setItem(row, 0, QTableWidgetItem(u"Group {}".format(verb.group)))
+            self.__results_table.setItem(row, 1, QTableWidgetItem(u"Conjugation {}".format(conjugation)))
             add_button_widget = QWidget()
             add_button = QPushButton("Add")
             add_button.clicked.connect(lambda: self.__on_add(verb, conjugation))
@@ -83,10 +91,62 @@ class VerbWindow(QWidget):
             add_button_layout.setAlignment(Qt.AlignCenter)
             add_button_layout.setContentsMargins(0, 0, 0, 0)
             add_button_widget.setLayout(add_button_layout)
-            self.results_table.setCellWidget(row, 2, add_button_widget)
-        self.results_table.setVisible(True)
+            self.__results_table.setCellWidget(row, 2, add_button_widget)
+        self.__results_table.setVisible(True)
+
+    def __get_custom_model(self):
+        manager = self.__collection.models
+        model = manager.byName(self.__model_name)
+        if not model:
+            model = manager.new(self.__model_name)
+            field = manager.newField("Form")
+            manager.addField(model, field)
+            field = manager.newField("Subject")
+            manager.addField(model, field)
+            field = manager.newField("Conjugation")
+            manager.addField(model, field)
+            template = manager.newTemplate("Card 1")
+            template['qfmt'] = "{{Form}} \n\n[{{Subject}}] {{Conjugation}}"
+            template['afmt'] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}"
+            manager.addTemplate(model, template)
+            manager.add(model)
+
+        return model
+
 
     def __on_add(self, verb, conjugation):
-       pass 
+        while self.__locked:
+            sleep(1)
 
+        self.__locked = True
+        self.__verb_text.setReadOnly(True)
+        self.__deck_select.setEditable(False)
 
+        deck_id = self.__deck_select.itemData(self.__deck_select.currentIndex())
+        self.__collection.decks.select(deck_id)
+        model = self.__get_custom_model()
+        model['did'] = deck_id
+        self.__collection.models.save(model)
+        self.__collection.models.setCurrent(model)
+
+        for form, checkbox in self.__forms.iteritems():
+            if not checkbox.isChecked():
+                continue
+
+            conjugations = verb.conjugate(form, conjugation)
+            for subject, conjugation in conjugations.iteritems():
+                card = deck.newNote()
+                card[u"Form"] = form
+                card[u"Subject"] = "Impersonal" if subject is None else subject
+                card[u"Conjugation"] = conjugation
+                card.tags.append(form.replace(" ", "_"))
+                card.tags.append(subject.replace(" ", "_"))
+
+                deck.addNote(card)
+                deck.save()
+
+        self.__collection.reset()
+        self.__main_window.reset()
+        self.__deck_select.setEditable(True)
+        self.__verb_text.setReadOnly(False)
+        self.__locked = False
