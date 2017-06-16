@@ -53,8 +53,8 @@ class VerbWindow(QWidget):
         forms_box.addLayout(personal_forms_box)
 
         # Table of search results
-        self.__results_table = QTableWidget(4, 3, self)
-        self.__results_table.setHorizontalHeaderLabels(["Group", "Conjugation"])
+        self.__results_table = QTableWidget(4, 4, self)
+        self.__results_table.setHorizontalHeaderLabels(["Infinitive", "Group", "Conjugation", "Add"])
         self.__results_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.__results_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.__results_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -64,6 +64,7 @@ class VerbWindow(QWidget):
         self.__results_table.horizontalHeader().setStretchLastSection(True)
         self.__results_table.horizontalHeader().setMinimumSectionSize(100)
         self.__results_table.verticalHeader().setResizeMode(QHeaderView.Fixed)
+        self.__results_table.verticalHeader().hide()
         self.__results_table.setMinimumHeight(275)
         self.__results_table.setVisible(False)
 
@@ -74,7 +75,7 @@ class VerbWindow(QWidget):
         top_box.addWidget(self.__results_table)
 
         self.setLayout(top_box)
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(450)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setWindowTitle("Add Verb")
         self.show()
@@ -82,19 +83,24 @@ class VerbWindow(QWidget):
     def __on_search(self):
         verb = Verb(unicode(self.__verb_text.text()))
         self.__results_table.setRowCount(0)
-        for row, conjugation in enumerate(verb.conjugations):
+        for row, specifier in enumerate(verb.specifiers):
             self.__results_table.insertRow(row)
-            self.__results_table.setItem(row, 0, QTableWidgetItem(u"Group {}".format(verb.group)))
-            self.__results_table.setItem(row, 1, QTableWidgetItem(u"Conjugation {}".format(conjugation)))
+            self.__results_table.setItem(
+                    row, 
+                    0, 
+                    QTableWidgetItem(specifier.infinitive)
+                    )
+            self.__results_table.setItem(row, 1, QTableWidgetItem(specifier.group))
+            self.__results_table.setItem(row, 2, QTableWidgetItem(specifier.conjugation))
             add_button_widget = QWidget()
             add_button = QPushButton("Add")
-            add_button.clicked.connect(lambda: self.__on_add(verb, conjugation))
+            add_button.clicked.connect(lambda: self.__on_add(verb, specifier))
             add_button_layout = QHBoxLayout(add_button_widget)
             add_button_layout.addWidget(add_button)
             add_button_layout.setAlignment(Qt.AlignCenter)
             add_button_layout.setContentsMargins(0, 0, 0, 0)
             add_button_widget.setLayout(add_button_layout)
-            self.__results_table.setCellWidget(row, 2, add_button_widget)
+            self.__results_table.setCellWidget(row, 3, add_button_widget)
         self.__results_table.setVisible(True)
 
     def __get_custom_model(self):
@@ -119,7 +125,7 @@ class VerbWindow(QWidget):
         return model
 
 
-    def __on_add(self, verb, conjugation_type):
+    def __on_add(self, verb, specifier):
         while self.__locked:
             sleep(1)
 
@@ -134,12 +140,12 @@ class VerbWindow(QWidget):
         self.__collection.models.save(model)
         self.__collection.models.setCurrent(model)
 
-        verb_infinitive = verb.conjugate("Infinitive", conjugation_type)[None]
+        verb_infinitive = verb.conjugate("Infinitive", specifier)[None]
         for form, checkbox in self.__forms.iteritems():
             if not checkbox.isChecked():
                 continue
 
-            conjugations = verb.conjugate(form, conjugation_type)
+            conjugations = verb.conjugate(form, specifier)
             for subject, conjugation in conjugations.iteritems():
                 subject = "Impersonal" if subject is None else subject
                 card = self.__collection.newNote()

@@ -3,9 +3,6 @@ from bs4 import BeautifulSoup
 from collections import namedtuple
 import urllib
 
-class InvalidFormError(Exception):
-    pass
-
 class InvalidConjugationError(Exception):
     pass
 
@@ -109,15 +106,9 @@ class Verb(object):
     def specifiers(self):
         return self.__candidates.keys()
 
-
     @property
     def forms(self):
         return self.__forms.keys()
-
-
-    @property
-    def candidates(self):
-        return self.__candidates
 
     @classmethod
     def get_forms(cls):
@@ -137,17 +128,17 @@ class Verb(object):
 
         return None in cls.__forms[form]
 
-    def conjugate(self, form, conjugation):
+    def conjugate(self, form, specifier):
         if form not in self.forms:
             raise InvalidFormError("{} is not a valid form.".format(form))
-        elif conjugation not in self.conjugations:
+        elif specifier not in self.specifiers:
             raise InvalidConjugationError("{} is not a valid conjugation.".format(conjugation))
 
         conjugations = {}
-        table = self.__candidates[conjugation]
+        table = self.__candidates[specifier]
         for subject, location in self.__forms[form].iteritems():
             form = self.__table_lookup(table, location)
-            if form != "—":
+            if form != u"—":
                 conjugations[subject] = form
 
         return conjugations
