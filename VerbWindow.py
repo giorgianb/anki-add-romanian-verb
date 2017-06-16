@@ -37,6 +37,9 @@ class VerbWindow(QWidget):
 
         self.__forms = {}
         for form in Verb.get_forms():
+            if form == "Infinitive":
+                continue
+
             checkbox = QCheckBox(form, self)
             checkbox.setChecked(True)
             self.__forms[form] = checkbox
@@ -103,18 +106,20 @@ class VerbWindow(QWidget):
             manager.addField(model, field)
             field = manager.newField("Subject")
             manager.addField(model, field)
+            field = manager.newField("Infinitive")
+            manager.addField(model, field)
             field = manager.newField("Conjugation")
             manager.addField(model, field)
             template = manager.newTemplate("Card 1")
-            template['qfmt'] = "{{Form}} \n\n[{{Subject}}] {{Conjugation}}"
-            template['afmt'] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Back}}"
+            template['qfmt'] = "{{Form}}\n\n\n\n[{{Subject}}] {{Infinitive}}"
+            template['afmt'] = "{{FrontSide}}\n\n<hr id=answer>\n\n{{Conjugation}}"
             manager.addTemplate(model, template)
             manager.add(model)
 
         return model
 
 
-    def __on_add(self, verb, conjugation):
+    def __on_add(self, verb, conjugation_type):
         while self.__locked:
             sleep(1)
 
@@ -129,21 +134,24 @@ class VerbWindow(QWidget):
         self.__collection.models.save(model)
         self.__collection.models.setCurrent(model)
 
+        verb_infinitive = verb.conjugate("Infinitive", conjugation_type)[None]
         for form, checkbox in self.__forms.iteritems():
             if not checkbox.isChecked():
                 continue
 
-            conjugations = verb.conjugate(form, conjugation)
+            conjugations = verb.conjugate(form, conjugation_type)
             for subject, conjugation in conjugations.iteritems():
-                card = deck.newNote()
+                subject = "Impersonal" if subject is None else subject
+                card = self.__collection.newNote()
                 card[u"Form"] = form
-                card[u"Subject"] = "Impersonal" if subject is None else subject
+                card[u"Subject"] = subject
+                card[u"Infinitive"] = verb_infinitive
                 card[u"Conjugation"] = conjugation
                 card.tags.append(form.replace(" ", "_"))
                 card.tags.append(subject.replace(" ", "_"))
 
-                deck.addNote(card)
-                deck.save()
+                self.__collection.addNote(card)
+                self.__collection.save()
 
         self.__collection.reset()
         self.__main_window.reset()

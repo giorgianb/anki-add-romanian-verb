@@ -2,6 +2,13 @@ from bs4 import BeautifulSoup
 from collections import OrderedDict
 import urllib
 
+class InvalidFormError(Exception):
+    pass
+
+class InvalidConjugationError(Exception):
+    pass
+
+
 class Verb(object):
     __forms = {
             "Infinitive" : {None : (1, 0)},
@@ -63,7 +70,6 @@ class Verb(object):
         self.__group = self.__get_group(tables[0])
         conjugations = self.__get_conjugations(tables)
         self.__candidates = dict(zip(conjugations, tables))
-
 
     @staticmethod
     def __get_group(candidate):
