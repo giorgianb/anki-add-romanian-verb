@@ -8,7 +8,7 @@ class InvalidConjugationError(Exception):
 
 ConjugationSpecifier = namedtuple("ConjugationSpecifier", "infinitive group conjugation")
 
-class Verb(object):
+class RomanianVerb(object):
     __forms = {
             "Infinitive" : {None : (1, 0)},
             "Long Infinitive" : {None : (1, 1)},

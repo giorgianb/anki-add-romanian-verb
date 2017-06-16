@@ -1,12 +1,12 @@
 from PyQt4.QtGui import *
 from PyQt4.QtCore import Qt
 from time import sleep
-from Verb import Verb
+from RomanianVerb import RomanianVerb
 
-class VerbWindow(QWidget):
+class RomanianVerbWindow(QWidget):
     __model_name = u"Romanian Verb Conjugation"
     def __init__(self, main_window, collection):
-        super(VerbWindow, self).__init__()
+        super(RomanianVerbWindow, self).__init__()
 
         self.__locked = False
         self.__collection = collection
@@ -36,14 +36,14 @@ class VerbWindow(QWidget):
         impersonal_forms_box = QVBoxLayout()
 
         self.__forms = {}
-        for form in Verb.get_forms():
+        for form in RomanianVerb.get_forms():
             if form == "Infinitive":
                 continue
 
             checkbox = QCheckBox(form, self)
             checkbox.setChecked(True)
             self.__forms[form] = checkbox
-            if Verb.is_personal_form(form):
+            if RomanianVerb.is_personal_form(form):
                 personal_forms_box.addWidget(checkbox)
             else:
                 impersonal_forms_box.addWidget(checkbox)
@@ -77,11 +77,11 @@ class VerbWindow(QWidget):
         self.setLayout(top_box)
         self.setMinimumWidth(450)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.setWindowTitle("Add Verb")
+        self.setWindowTitle("Add Romanian Verb")
         self.show()
 
     def __on_search(self):
-        verb = Verb(unicode(self.__verb_text.text()))
+        verb = RomanianVerb(unicode(self.__verb_text.text()))
         self.__results_table.setRowCount(0)
         for row, specifier in enumerate(verb.specifiers):
             self.__results_table.insertRow(row)
@@ -131,7 +131,6 @@ class VerbWindow(QWidget):
 
         self.__locked = True
         self.__verb_text.setReadOnly(True)
-        self.__deck_select.setEditable(False)
 
         deck_id = self.__deck_select.itemData(self.__deck_select.currentIndex())
         self.__collection.decks.select(deck_id)
@@ -161,6 +160,5 @@ class VerbWindow(QWidget):
 
         self.__collection.reset()
         self.__main_window.reset()
-        self.__deck_select.setEditable(True)
         self.__verb_text.setReadOnly(False)
         self.__locked = False
