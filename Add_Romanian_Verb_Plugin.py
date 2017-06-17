@@ -138,7 +138,7 @@ class RomanianVerb(object):
         if form not in self.forms:
             raise InvalidFormError("{} is not a valid form.".format(form))
         elif specifier not in self.specifiers:
-            raise InvalidConjugationError("{} is not a valid conjugation.".format(conjugation))
+            raise InvalidConjugationError("{} is not a valid specifier.".format(specifier))
 
         conjugations = {}
         table = self.__candidates[specifier]
@@ -155,7 +155,7 @@ class RomanianVerb(object):
         if location[1] == 0:
              entry = row.td
         else:
-            entry = row.td.find_next_siblings()[location[1] - 1]
+            entry = row.td.findNextSiblings()[location[1] - 1]
 
         bad_forms = entry.findAll(".notRecommended")
         for form in bad_forms:
@@ -260,7 +260,8 @@ class RomanianVerbWindow(QWidget):
             self.__results_table.setItem(row, 2, QTableWidgetItem(specifier.conjugation))
             add_button_widget = QWidget()
             add_button = QPushButton("Add")
-            add_button.clicked.connect(lambda: self.__on_add(verb, specifier))
+            # Lambda is weird to capture specifier's object
+            add_button.clicked.connect((lambda spec: lambda: self.__on_add(verb, spec))(specifier))
             add_button_layout = QHBoxLayout(add_button_widget)
             add_button_layout.addWidget(add_button)
             add_button_layout.setAlignment(Qt.AlignCenter)
