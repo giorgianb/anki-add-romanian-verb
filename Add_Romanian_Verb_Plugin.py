@@ -103,8 +103,12 @@ class RomanianVerb(object):
         conjugations = []
         for candidate in candidates:
             labels = candidate.parent.findAll("label")
-            label = [label.text for label in labels if "conjugarea" in label.text][0]
-            conjugations.append(label[len("conjugarea a "):label.find("-a")])
+            labels = [label.text for label in labels if "conjugarea" in label.text]
+            if len(labels) > 0:
+                label = labels[0]
+                conjugations.append(label[len("conjugarea a "):label.find("-a")])
+            else:
+                conjugations.append("irregular")
 
         return tuple(conjugations)
 
@@ -157,11 +161,11 @@ class RomanianVerb(object):
         else:
             entry = row.td.findNextSiblings()[location[1] - 1]
 
-        bad_forms = entry.findAll(".notRecommended")
+        bad_forms = entry.findAll(attrs="notRecommended")
         for form in bad_forms:
             form.clear()
 
-        spans = entry.findAll(".accented")
+        spans = entry.findAll(attrs="accented")
         for span in spans:
             span.string = u"<u>" + span.text + u"</u>"
 
